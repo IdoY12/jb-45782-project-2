@@ -122,6 +122,15 @@
                     trigger: 'click',
                     html: true
                 })
+            
+                btn.addEventListener('show.bs.popover', () => {
+                    document.querySelectorAll('[data-bs-toggle="popover"]').forEach(otherBtn => {
+                        if (otherBtn !== btn) {
+                            const pop = bootstrap.Popover.getInstance(otherBtn)
+                            if (pop) pop.hide()
+                        }
+                    })
+                })
             })
         }
         renderCards(coinsAll)
@@ -266,12 +275,6 @@
                                 Select coin
                             </label>
                         </div>
-                        <button id="modalRenderPrice_${symbol}" type="button" class="btn btn-secondary" data-bs-container="body"
-                            data-bs-toggle="popover" data-bs-placement="bottom" data-bs-content="
-                        ${priceHtml(+priceUsd)}
-                        ">
-                            More info
-                        </button>
                     </div>
                 </div>
             `
@@ -289,30 +292,16 @@
                                 ${symbol}
                             </p>
                             <div class="form-check form-switch">
-                                <input id="modalRemove_${id}" class="modalSwitchCoin form-check-input" type="checkbox" role="switch">
+                                <input id="modalRemove_${id}" class="modalSwitchCoin form-check-input" type="checkbox" role="switch"  ${isSelected(id) ? 'checked' : ''}>
                                 <label class="form-check-label" for="modalRemove_${id}">
                                     Remove this coin
                                 </label>
                             </div>
-                            <button id="modalRenderPrice_${symbol}" type="button" class="btn btn-secondary" data-bs-container="body"
-                                data-bs-toggle="popover" data-bs-placement="bottom" data-bs-content="
-                            ${priceHtml(+priceUsd)}
-                            ">
-                                More info
-                            </button>
                         </div>
                     </div>
                 `
             ).join(``)
             document.getElementById(`selectedCards`).innerHTML = selectedCardsHTML
-
-            document.querySelectorAll('[data-bs-toggle="popover"]').forEach(btn => {
-                bootstrap.Popover.getOrCreateInstance(btn, {
-                    container: 'body',
-                    trigger: 'click',
-                    html: true
-                })
-            })
 
             const selectedCards = document.getElementById(`selectedCards`)
             const confirmSwapBtn = document.getElementById(`confirmSwapBtn`)
@@ -320,30 +309,31 @@
 
             confirmSwapBtn.disabled = true
 
-            selectedCards.onchange = (event) => {
-                const toggled = event.target
-
-                selectedCards.querySelectorAll(`.modalSwitchCoin`).forEach(swi => {
-                    if(swi !== toggled) swi.checked = false
+            const handleChange = e => {
+                const toggled = e.target
+                selectedCards.querySelectorAll('.modalSwitchCoin').forEach(swi => {
+                    if (swi !== toggled) swi.checked = true
                 })
-                confirmSwapBtn.disabled = !toggled.checked
+                confirmSwapBtn.disabled = toggled.checked
             }
+
+            selectedCards.querySelectorAll('.modalSwitchCoin')
+              .forEach(input => input.addEventListener('change', handleChange))
 
             confirmSwapBtn.onclick = () => {
-                const chosen = selectedCards.querySelector(`.modalSwitchCoin:checked`)
-
-                const removeId = chosen.id.replace(`modalRemove_`, ``)
-
+                const chosen = selectedCards.querySelector('.modalSwitchCoin:not(:checked)')
+                const removeId = chosen.id.replace('modalRemove_', '')
                 removeSelected(removeId)
                 addSelected(pendingNewId)
-
-                bootstrap.Modal.getOrCreateInstance(document.getElementById(`swapModal`)).hide()
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('swapModal')).hide()
                 pendingNewId = null
                 const currentSearch = searchInput.value.trim().toLowerCase()
-                const view = currentSearch ? coinsAll.filter(({nameLC, symbolLC}) => nameLC.startsWith(currentSearch) || symbolLC.startsWith(currentSearch)) : coinsAll
+                const view = currentSearch
+                    ? coinsAll.filter(({ nameLC, symbolLC }) => nameLC.startsWith(currentSearch) || symbolLC.startsWith(currentSearch))
+                    : coinsAll
                 renderCards(view)
             }
-
+            
             cancelSwapBtn.onclick = () => pendingNewId = null
         }
 
@@ -487,7 +477,7 @@
                     }
                 })
 
-                added.forEach((symbol, indexForColor) => {
+                added.map((symbol, indexForColor) => {
                     const colorIndex = datasets.length + indexForColor
                     datasets.push({
                         label: symbol,
@@ -505,8 +495,8 @@
                     }
                 })
                 chart.update()
-            } catch (error) {
-                
+            } catch (err) {
+                console.lof(err)
             }finally{
                 hideSpinner()
             }
@@ -524,6 +514,17 @@
             document.querySelectorAll(`[data-bs-toggle="popover"]`).forEach(btn => {
                 const popover = bootstrap.Popover.getInstance(btn)
                 if(popover) popover.hide()
+            })
+        })
+
+        document.addEventListener('click', (e) => {
+            document.querySelectorAll('[data-bs-toggle="popover"]').forEach(btn => {
+                const pop = bootstrap.Popover.getInstance(btn)
+                if (pop) {
+                    if (!btn.contains(e.target) && !document.querySelector('.popover')?.contains(e.target)) {
+                        pop.hide()
+                    }
+                }
             })
         })
 
